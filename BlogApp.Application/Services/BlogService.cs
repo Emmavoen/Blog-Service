@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 using BlogApp.Application.Contracts.Services;
 using BlogApp.Application.Contracts.UnitOfWork;
@@ -10,6 +7,7 @@ using BlogApp.Application.DTOs.Request;
 using BlogApp.Application.DTOs.Response;
 using BlogApp.Application.Helpers;
 using BlogApp.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Application.Services
 {
@@ -27,20 +25,20 @@ namespace BlogApp.Application.Services
             if (blogExist != null)
             {
                 return Result<BlogResponceDto>.ErrorResult("Blog Already Exist", HttpStatusCode.BadRequest);
-                
+
             }
 
-            var newBlog =  new Blog()
+            var newBlog = new Blog()
             {
                 Name = requestDto.Name,
                 Url = requestDto.Url,
                 AuthorId = requestDto.AuthorId
             };
             await _unitOfWork.BlogRepository.AddAsync(newBlog);
-            var save =  await _unitOfWork.Save();
-            if(save  < 1)
+            var save = await _unitOfWork.Save();
+            if (save < 1)
             {
-                return Result<BlogResponceDto>.ErrorResult("Something went wrong",HttpStatusCode.InternalServerError);
+                return Result<BlogResponceDto>.ErrorResult("Something went wrong", HttpStatusCode.InternalServerError);
             }
 
             var blogResponse = new BlogResponceDto
@@ -51,23 +49,23 @@ namespace BlogApp.Application.Services
 
             };
 
-            return Result<BlogResponceDto>.SuccessResult(blogResponse , HttpStatusCode.OK);
+            return Result<BlogResponceDto>.SuccessResult(blogResponse, HttpStatusCode.OK);
         }
 
         public async Task<Result<BlogResponceDto>> DeleteBlog(int id)
         {
-            var exist =  await _unitOfWork.BlogRepository.GetByColumnAsync(x => x.Id == id);
-            if (exist == null)  
+            var exist = await _unitOfWork.BlogRepository.GetByColumnAsync(x => x.Id == id);
+            if (exist == null)
             {
                 return Result<BlogResponceDto>.ErrorResult("Bad Request", HttpStatusCode.BadRequest);
             }
 
-             await _unitOfWork.BlogRepository.DeleteAsync(id);
-             await _unitOfWork.Save();
-           
+            await _unitOfWork.BlogRepository.DeleteAsync(id);
+            await _unitOfWork.Save();
+
             return Result<BlogResponceDto>.SuccessResult("Success", HttpStatusCode.OK);
 
-             
+
         }
 
         // public async Task<Result<IEnumerable<BlogResponceDto>> GetAllBlogByAuthorId(int id)
@@ -85,33 +83,31 @@ namespace BlogApp.Application.Services
         //     return Result<IEnumerable<BlogResponceDto>>.SuccessResult(blog, HttpStatusCode.OK);
         // }   
 
-        public async Task<PaginatedList<BlogResponceDto>> GetPaginatedPaymentsBySenderAccountAsync(int authorId, int pageNumber, int pageSize)
-    {
-         var query = _dbContext.Blogs
-        .Include(b => b.Author)
-        .Where(b => b.AuthorId == authorId);
+        public async Task<PaginatedList<BlogResponceDto>> GetBlogByAuthorId(int authorId, int pageNumber, int pageSize)
+        {
 
-        // Call the repository method to get the paginated list
-        var listBlog = await _unitOfWork.BlogRepository.GetPaginated(x => x.AuthorId == authorId, pageNumber, pageSize);
-    
-        var dtoItems = listBlog.Items.Select(blog => new BlogResponceDto
-                                   {
-                                       Name = blog.Name,
-                                       Url = blog.Url,
-                                       AuthorName = blog.Author.Name,
 
-                                       
-                                       
-                                    }).ToList();
+            // Call the repository method to get the paginated list
+            var listBlog = await _unitOfWork.BlogRepository.GetPaginatedAsync(x => x.AuthorId == authorId, pageNumber, pageSize, include: query => query.Include(b => b.Author));
 
-        return new PaginatedList<BlogResponceDto>(dtoItems,listBlog.TotalCount, pageNumber,pageSize);
-    }
+            var dtoItems = listBlog.Items.Select(blog => new BlogResponceDto
+            {
+                Name = blog.Name,
+                Url = blog.Url,
+                AuthorName = blog.Author.Name,
 
-        public async Task<Result<BlogResponceDto>> UpdateBlog(int id,string name, string url)
+
+
+            }).ToList();
+
+            return new PaginatedList<BlogResponceDto>(dtoItems, listBlog.TotalCount, pageNumber, pageSize);
+        }
+
+        public async Task<Result<BlogResponceDto>> UpdateBlog(int id, string name, string url)
         {
             var exist = await _unitOfWork.BlogRepository.GetByColumnAsync(x => x.Id == id);
 
-            if(exist == null)
+            if (exist == null)
             {
                 return Result<BlogResponceDto>.ErrorResult("Invalid Credentials", HttpStatusCode.BadRequest);
             };
@@ -119,8 +115,8 @@ namespace BlogApp.Application.Services
             exist.Name = name;
             exist.Url = url;
 
-             _unitOfWork.BlogRepository.UpdateASync(exist);
-             await _unitOfWork.Save();
+            _unitOfWork.BlogRepository.UpdateASync(exist);
+            await _unitOfWork.Save();
             return Result<BlogResponceDto>.SuccessResult("Success", HttpStatusCode.OK);
         }
     }

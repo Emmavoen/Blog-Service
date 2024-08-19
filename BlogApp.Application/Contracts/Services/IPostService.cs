@@ -10,6 +10,7 @@ namespace BlogApp.Application.Contracts.Services
 {
     public interface IPostService
     {
+        Task<PaginatedList<PostResponseDto>> GetPostByBlogId(int BlogId, int pageNumber, int pageSize);
         Task<Result<PostResponseDto>> AddPost(PostRequestDto requestDto);
         Task<Result<PostResponseDto>> DeletePost(int id);
 

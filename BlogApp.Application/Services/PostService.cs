@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using BlogApp.Application.Contracts.Services;
@@ -7,6 +8,7 @@ using BlogApp.Application.DTOs.Request;
 using BlogApp.Application.DTOs.Response;
 using BlogApp.Application.Helpers;
 using BlogApp.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Application.Services
 {
@@ -89,5 +91,27 @@ namespace BlogApp.Application.Services
              await _unitOfWork.Save();
             return Result<PostResponseDto>.SuccessResult("Success", HttpStatusCode.OK);
         }
+
+        public async Task<PaginatedList<PostResponseDto>> GetPostByBlogId(int BlogId, int pageNumber, int pageSize)
+        {
+
+
+            // Call the repository method to get the paginated list
+            var listPost = await _unitOfWork.PostRepository.GetPaginatedAsync(x => x.BlogId == BlogId, pageNumber, pageSize, include: query => query.Include(b => b.Blog));
+
+            var dtoItems = listPost.Items.Select(post => new PostResponseDto
+            {
+                Content = post.Content,
+                Title = post.Title,
+                DatePublished = post.DatePublished,
+                BlogName = post.Blog.Name,
+
+
+
+            }).ToList();
+
+            return new PaginatedList<PostResponseDto>(dtoItems, listPost.TotalCount, pageNumber, pageSize);
+        }
+
     }
 }

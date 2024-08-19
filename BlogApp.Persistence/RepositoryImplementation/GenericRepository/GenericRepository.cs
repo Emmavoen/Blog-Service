@@ -49,24 +49,48 @@ namespace BlogApp.Persistence.RepositoryImplementation.GenericRepository
 
         }
 
-        public async Task<PaginatedList<T>> GetPaginated(Expression<Func<T, bool>> predicate, int pageNumber, int pageSize, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null)
+        // public async Task<PaginatedList<T>> GetPaginated(Expression<Func<T, bool>> predicate, int pageNumber, int pageSize, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null)
+        // {
+        //     IQueryable<T> query = _context.Set<T>();
+
+        //     if (include != null)
+        //     {
+        //         query = include(query);
+        //     }
+
+        //     var query = query.Where(predicate).AsQueryable();
+        //     var count = await query.CountAsync();
+
+        //     var items = await query.Skip((pageNumber - 1) * pageSize)
+        //                            .Take(pageSize)
+        //                            .ToListAsync();
+
+        //     return new PaginatedList<T>(items, count, pageNumber, pageSize);
+        // }
+
+
+         public async Task<PaginatedList<T>> GetPaginatedAsync(
+        Expression<Func<T, bool>> predicate, 
+        int pageNumber, 
+        int pageSize, 
+        Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null)
+    {
+        IQueryable<T> query = _context.Set<T>();
+
+        if (include != null)
         {
-            IQueryable<T> query = _dbSet;
-
-            if (include != null)
-            {
-                query = include(query);
-            }
-
-            var query = _dbSet.Where(predicate).AsQueryable();
-            var count = await query.CountAsync();
-
-            var items = await query.Skip((pageNumber - 1) * pageSize)
-                                   .Take(pageSize)
-                                   .ToListAsync();
-
-            return new PaginatedList<T>(items, count, pageNumber, pageSize);
+            query = include(query);
         }
+
+        query = query.Where(predicate);
+
+        var count = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize)
+                               .Take(pageSize)
+                               .ToListAsync();
+
+        return new PaginatedList<T>(items, count, pageNumber, pageSize);
+    }
 
     }
 }
